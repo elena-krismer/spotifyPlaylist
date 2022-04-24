@@ -42,7 +42,7 @@ def load_artist_db():
     """
     artists = pd.read_csv('data/artists.csv.zip', 
     compression='zip', header=0, sep=',', quotechar='"')
-    artists['artists'] = artists['artists'].str.strip('[]').str.strip("''")
+    artists['name'] = artists['name'].str.strip('[]').str.strip("''")
     artists['genres'] = artists['genres'].str.strip('[]').str.strip("''")
     return artists
 
@@ -81,13 +81,22 @@ def subset_according_genre(genre=None):
     df = load_song_db()
     artists = load_artist_db()
     if genre:
-        genre_artists = artists[artists["genres"].str.contains(genre)]["id_artists"].tolist()
+        genre_artists = artists[artists["genres"].str.contains(genre)]["id"].tolist()
         df = df[df["id_artists"].isin(genre_artists)]
     return df
 
 
+def subset_similar_artists():
+    """subset dataframe by similar artists
+    """
+    # placeholder
+    # https://developer.spotify.com/console/get-artist-related-artists/
+    pass
+
+
 def get_similar_songs(genre_df, songs_favourite_df, n_songs= 25):
     """generates playlist of similar songs usning Jaccard Similarity
+    Note: both 
 
     Args:
         genre_df (_type_): dataframe subsetted by specific genre (use playlist_of_the_day())
@@ -102,7 +111,7 @@ def get_similar_songs(genre_df, songs_favourite_df, n_songs= 25):
        'loudness', 'mode', 'speechiness', 'acousticness', 'instrumentalness',
        'liveness', 'valence', 'tempo']
 
-    combine = pd.combat(genre_df, songs_favourite_df)
+    combine = pd.concat(genre_df, songs_favourite_df)
     j = distance.pdist(combine[features_list], "jaccard")
     k = combine["id"].to_numpy()
     d = pd.DataFrame(1 - distance.squareform(j), index=k, columns=k)
@@ -131,7 +140,7 @@ def playlist_of_the_day():
     return df
     
 
-def knn_song_recommendation(song_id, n_songs = 25, subset_genre = False):
+def knn_song_recommendation(song_id, n_songs = 25, subset_genre = False, related_artists = False):
     """finds k nearest neigbourhs of a particular song using the song id of song db
 
     Args:
@@ -151,12 +160,18 @@ def knn_song_recommendation(song_id, n_songs = 25, subset_genre = False):
     # generate df with only songs from the same genre
     if subset_genre:
         df = subset_according_genre(df) 
+
+    # finds similar aritists before doing kmean to get more accurate results
+    # not implemented yet
+    if related_artists:
+        df = subset_similar_artists(df)
     
     # KNN
+    row_number = df[df["id"]==song_id].index[0]
     X = df[features_list].to_numpy()
     nbrs = NearestNeighbors(n_neighbors=n_songs)
     nbrs.fit(X)
-    neighbors_f_id = nbrs.kneighbors_graph([X[id]]).indices
+    neighbors_f_id = nbrs.kneighbors_graph([X[row_number]]).indices
     # row numbers with recommended songs
     recom = neighbors_f_id.tolist()
     # return df with song recommendation
