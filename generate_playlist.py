@@ -140,7 +140,7 @@ def playlist_of_the_day():
     return df
     
 
-def knn_song_recommendation(song_id, n_songs = 25, subset_genre = False, related_artists = False):
+def knn_song_recommendation(song_id, df = None, n_songs = 25, subset_genre = False, related_artists = False):
     """finds k nearest neigbourhs of a particular song using the song id of song db
 
     Args:
@@ -156,7 +156,8 @@ def knn_song_recommendation(song_id, n_songs = 25, subset_genre = False, related
     features_list =  ['danceability', 'energy', 'key',
        'loudness', 'mode', 'speechiness', 'acousticness', 'instrumentalness',
        'liveness', 'valence', 'tempo']
-    df = load_song_db() 
+    if df is None:
+        df = load_song_db() 
     # generate df with only songs from the same genre
     if subset_genre:
         df = subset_according_genre(df) 
@@ -167,6 +168,7 @@ def knn_song_recommendation(song_id, n_songs = 25, subset_genre = False, related
         df = subset_similar_artists(df)
     
     # KNN
+    df = df.set_index(np.arange(df.shape[0]))
     row_number = df[df["id"]==song_id].index[0]
     X = df[features_list].to_numpy()
     nbrs = NearestNeighbors(n_neighbors=n_songs)
